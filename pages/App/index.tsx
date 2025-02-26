@@ -72,16 +72,55 @@ export default function App() {
       for (const record of recordList) {
         const cellValue = await srcTable.getCellValue(sourceField, record.id);
 
-        if (cellValue !== undefined && cellValue !== null) { //check for null or undefined
-          //handle different data types.  String is assumed to be multiline
-          let lines: string[];
+        if (cellValue !== undefined && cellValue !== null) {
+          // 处理不同类型的单元格值
+          let lines: string[] = [];
+          
           if (typeof cellValue === 'string') {
+            // 处理普通字符串
             lines = cellValue.split('\n').filter(line => line.trim() !== '');
           } else if (Array.isArray(cellValue)) {
-              lines = cellValue.map(String).filter(line => line.trim() !== '');
+            // 处理数组类型
+            if (cellValue.length > 0 && typeof cellValue[0] === 'object' && cellValue[0].type === 'text') {
+              // 处理富文本类型 [{type: 'text', text: '...'}]
+              const richTextContent = cellValue
+                .filter(segment => segment.type === 'text' && segment.text)
+                .map(segment => segment.text)
+                .join('');
+              
+              lines = richTextContent.split('\n').filter(line => line.trim() !== '');
+            } else {
+              // 处理普通数组
+              lines = cellValue.map(item => {
+                if (typeof item === 'object' && item !== null) {
+                  return JSON.stringify(item);
+                }
+                return String(item);
+              }).filter(line => line.trim() !== '');
+            }
+          } else if (typeof cellValue === 'object' && cellValue !== null) {
+            // 处理对象类型（包括富文本段落等）
+            console.log('Object cell value:', cellValue);
+            
+            if (cellValue.type === 'text' && cellValue.text) {
+              lines = cellValue.text.split('\n').filter(line => line.trim() !== '');
+            } else if (cellValue.title || cellValue.name || cellValue.value) {
+              // 处理其他常见对象格式
+              const text = cellValue.title || cellValue.name || cellValue.value || JSON.stringify(cellValue);
+              lines = [text];
+            } else {
+              try {
+                lines = [JSON.stringify(cellValue)];
+              } catch (e) {
+                lines = ['[无法解析的对象]'];
+              }
+            }
           } else {
-            lines = [String(cellValue)]; //handle other types by converting to string
+            // 处理其他类型
+            lines = [String(cellValue)];
           }
+          
+          console.log('处理后的行:', lines);
 
           for (const line of lines) {
             // 在目标表格创建新记录
