@@ -1,7 +1,7 @@
 
 'use client'
 import { bitable, ITable, ITableMeta, IField, ICellValue, IOpenSegment } from "@lark-base-open/js-sdk";
-import { Button, Form, Toast } from '@douyinfe/semi-ui';
+import { Button, Form, Toast, Select, Spin } from '@douyinfe/semi-ui';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { BaseFormApi } from '@douyinfe/semi-foundation/lib/es/form/interface';
 import styles from './index.module.css';
@@ -17,6 +17,9 @@ export default function App() {
   useEffect(() => {
     bitable.base.getTableMetaList().then(metaList => {
       setTableMetaList(metaList);
+    }).catch(error => {
+      console.error('Error fetching table list:', error);
+      Toast.error('Failed to load tables');
     });
   }, []);
 
@@ -110,6 +113,7 @@ export default function App() {
           const lines = textValue.split('\n').filter(line => line.trim() !== '');
           
           for (const line of lines) {
+            // Create a new record with the line as the specified field's value
             await tgtTable.addRecord({
               fields: {
                 [targetField]: line
@@ -120,97 +124,96 @@ export default function App() {
         }
       }
       
-      Toast.success(`Successfully created ${processedCount} records`);
+      Toast.success(`Successfully processed ${processedCount} lines into new records`);
     } catch (error) {
       console.error('Error processing multiline text:', error);
-      Toast.error('Failed to process multiline text');
+      Toast.error('An error occurred while processing');
     } finally {
       setLoading(false);
     }
   }, []);
 
   return (
-    <main className={styles.main}>
-      <h1 className={styles.title}>Multiline Text Splitter</h1>
+    <div className={styles.container}>
+      <h1 className={styles.title}>Multiline Text Processor</h1>
+      <p className={styles.description}>
+        Split multiline text from one table and create new records in another table.
+      </p>
       
-      <div className={styles.description}>
-        Split multiline text from a source field into separate records in a target field.
-      </div>
-      
-      <Form 
-        labelPosition='top' 
-        onSubmit={processMultilineText} 
-        getFormApi={(api: BaseFormApi) => formApi.current = api}
-        className={styles.form}
-      >
-        <Form.Section text="Source">
-          <Form.Select 
-            field='sourceTable' 
-            label='Source Table' 
-            placeholder="Select source table" 
-            style={{ width: '100%' }}
+      <Form getFormApi={(api) => formApi.current = api} onSubmit={processMultilineText}>
+        <Form.Section text="Source Configuration">
+          <Form.Select
+            field="sourceTable"
+            label="Source Table"
+            placeholder="Select source table"
             onChange={handleSourceTableChange}
-            required
+            style={{ width: '100%' }}
           >
-            {tableMetaList.map(({ id, name }) => (
-              <Form.Select.Option key={id} value={id}>
-                {name}
-              </Form.Select.Option>
+            {tableMetaList.map(table => (
+              <Select.Option key={table.id} value={table.id}>
+                {table.name}
+              </Select.Option>
             ))}
           </Form.Select>
           
-          <Form.Select 
-            field='sourceField' 
-            label='Source Field' 
-            placeholder="Select source field" 
+          <Form.Select
+            field="sourceField"
+            label="Source Field"
+            placeholder="Select source field"
             style={{ width: '100%' }}
-            required
+            disabled={sourceFields.length === 0}
           >
             {sourceFields.map(field => (
-              <Form.Select.Option key={field.id} value={field.id}>
+              <Select.Option key={field.id} value={field.id}>
                 {field.name}
-              </Form.Select.Option>
+              </Select.Option>
             ))}
           </Form.Select>
         </Form.Section>
         
-        <Form.Section text="Target">
-          <Form.Select 
-            field='targetTable' 
-            label='Target Table' 
-            placeholder="Select target table" 
-            style={{ width: '100%' }}
+        <Form.Section text="Target Configuration">
+          <Form.Select
+            field="targetTable"
+            label="Target Table"
+            placeholder="Select target table"
             onChange={handleTargetTableChange}
-            required
+            style={{ width: '100%' }}
           >
-            {tableMetaList.map(({ id, name }) => (
-              <Form.Select.Option key={id} value={id}>
-                {name}
-              </Form.Select.Option>
+            {tableMetaList.map(table => (
+              <Select.Option key={table.id} value={table.id}>
+                {table.name}
+              </Select.Option>
             ))}
           </Form.Select>
           
-          <Form.Select 
-            field='targetField' 
-            label='Target Field' 
-            placeholder="Select target field" 
+          <Form.Select
+            field="targetField"
+            label="Target Field"
+            placeholder="Select target field"
             style={{ width: '100%' }}
-            required
+            disabled={targetFields.length === 0}
           >
             {targetFields.map(field => (
-              <Form.Select.Option key={field.id} value={field.id}>
+              <Select.Option key={field.id} value={field.id}>
                 {field.name}
-              </Form.Select.Option>
+              </Select.Option>
             ))}
           </Form.Select>
         </Form.Section>
         
         <div className={styles.buttonContainer}>
-          <Button theme='solid' htmlType='submit' loading={loading}>
-            Process Multiline Text
+          <Button htmlType="submit" type="primary" theme="solid" loading={loading} disabled={loading}>
+            {loading ? 'Processing...' : 'Process Text'}
           </Button>
         </div>
       </Form>
-    </main>
+      
+      {loading && (
+        <div className={styles.loadingOverlay}>
+          <Spin size="large" />
+          <p>Processing records, please wait...</p>
+        </div>
+      )}
+    </div>
   );
 }
