@@ -1,4 +1,3 @@
-
 'use client'
 import { bitable, ITable, ITableMeta, IField, ICellValue, IOpenSegment } from "@lark-base-open/js-sdk";
 import { Button, Form, Toast, Select, Spin } from '@douyinfe/semi-ui';
@@ -13,107 +12,68 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const formApi = useRef<BaseFormApi>();
 
-  // Fetch table list on component mount
+  // 组件挂载时获取表格列表
   useEffect(() => {
     bitable.base.getTableMetaList().then(metaList => {
       setTableMetaList(metaList);
     }).catch(error => {
       console.error('Error fetching table list:', error);
-      Toast.error('Failed to load tables');
+      Toast.error('加载表格失败');
     });
   }, []);
 
-  // Load fields for the selected source table
+  // 当源表格改变时获取字段列表
   const handleSourceTableChange = useCallback(async (tableId: string) => {
-    if (tableId) {
-      try {
-        const table = await bitable.base.getTableById(tableId);
-        const fields = await table.getFieldMetaList();
-        setSourceFields(fields);
-        formApi.current?.setValue('sourceField', '');
-      } catch (error) {
-        console.error('Error loading source fields:', error);
-        Toast.error('Failed to load source table fields');
-      }
-    } else {
-      setSourceFields([]);
-    }
-  }, []);
-
-  // Load fields for the selected target table
-  const handleTargetTableChange = useCallback(async (tableId: string) => {
-    if (tableId) {
-      try {
-        const table = await bitable.base.getTableById(tableId);
-        const fields = await table.getFieldMetaList();
-        setTargetFields(fields);
-        formApi.current?.setValue('targetField', '');
-      } catch (error) {
-        console.error('Error loading target fields:', error);
-        Toast.error('Failed to load target table fields');
-      }
-    } else {
-      setTargetFields([]);
-    }
-  }, []);
-
-  // Process the form submission
-  const processMultilineText = useCallback(async (values: {
-    sourceTable: string,
-    sourceField: string,
-    targetTable: string,
-    targetField: string
-  }) => {
-    const { sourceTable, sourceField, targetTable, targetField } = values;
-    
-    if (!sourceTable || !sourceField || !targetTable || !targetField) {
-      Toast.warning('Please select all required fields');
-      return;
-    }
-
-    setLoading(true);
-    
     try {
-      // Get the source and target tables
+      const table = await bitable.base.getTableById(tableId);
+      const fields = await table.getFieldMetaList();
+      setSourceFields(fields);
+    } catch (error) {
+      console.error('Error fetching source fields:', error);
+      Toast.error('加载源表格字段失败');
+    }
+  }, []);
+
+  // 当目标表格改变时获取字段列表
+  const handleTargetTableChange = useCallback(async (tableId: string) => {
+    try {
+      const table = await bitable.base.getTableById(tableId);
+      const fields = await table.getFieldMetaList();
+      setTargetFields(fields);
+    } catch (error) {
+      console.error('Error fetching target fields:', error);
+      Toast.error('加载目标表格字段失败');
+    }
+  }, []);
+
+  // 处理多行文本
+  const processMultilineText = useCallback(async (values: any) => {
+    try {
+      setLoading(true);
+
+      const { sourceTable, sourceField, targetTable, targetField } = values;
+
+      if (!sourceTable || !sourceField || !targetTable || !targetField) {
+        Toast.error('请填写所有必填字段');
+        return;
+      }
+
       const srcTable = await bitable.base.getTableById(sourceTable);
       const tgtTable = await bitable.base.getTableById(targetTable);
-      
-      // Get all records from source table
-      const recordIdList = await srcTable.getRecordIdList();
-      
+
+      // 获取源表格的所有记录
+      const recordList = await srcTable.getRecordList();
       let processedCount = 0;
-      
-      // Process each record
-      for (const recordId of recordIdList) {
-        const cell = await srcTable.getCellValue(sourceField, recordId);
-        
-        // Skip if cell is empty
-        if (!cell) continue;
-        
-        let textValue = '';
-        
-        // Handle different cell value types
-        if (typeof cell === 'string') {
-          textValue = cell;
-        } else if (Array.isArray(cell) && cell.length > 0) {
-          // Handle array of text/segments
-          if (typeof cell[0] === 'string') {
-            textValue = cell.join('\n');
-          } else if (typeof cell[0] === 'object' && 'text' in cell[0]) {
-            // For rich text fields
-            textValue = (cell as IOpenSegment[]).map(segment => segment.text).join('');
-          }
-        } else if (typeof cell === 'object' && cell !== null) {
-          // Try to convert object to string if possible
-          textValue = JSON.stringify(cell);
-        }
-        
-        if (textValue) {
-          // Split by newline and create new records
-          const lines = textValue.split('\n').filter(line => line.trim() !== '');
-          
+
+      for (const record of recordList) {
+        const cellValue = await srcTable.getCellValue(sourceField, record.id);
+
+        if (cellValue && typeof cellValue === 'string') {
+          // 按换行符分割文本
+          const lines = cellValue.split('\n').filter(line => line.trim() !== '');
+
           for (const line of lines) {
-            // Create a new record with the line as the specified field's value
+            // 在目标表格创建新记录
             await tgtTable.addRecord({
               fields: {
                 [targetField]: line
@@ -123,11 +83,11 @@ export default function App() {
           }
         }
       }
-      
-      Toast.success(`Successfully processed ${processedCount} lines into new records`);
+
+      Toast.success(`成功处理 ${processedCount} 行文本并创建新记录`);
     } catch (error) {
       console.error('Error processing multiline text:', error);
-      Toast.error('An error occurred while processing');
+      Toast.error('处理过程中发生错误');
     } finally {
       setLoading(false);
     }
@@ -135,17 +95,17 @@ export default function App() {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.title}>Multiline Text Processor</h1>
+      <h1 className={styles.title}>多行文本处理器</h1>
       <p className={styles.description}>
-        Split multiline text from one table and create new records in another table.
+        从一个表格中分割多行文本并在另一个表格中创建新记录。
       </p>
-      
+
       <Form getFormApi={(api) => formApi.current = api} onSubmit={processMultilineText}>
-        <Form.Section text="Source Configuration">
+        <Form.Section text="源表格配置">
           <Form.Select
             field="sourceTable"
-            label="Source Table"
-            placeholder="Select source table"
+            label="源表格"
+            placeholder="请选择源表格"
             onChange={handleSourceTableChange}
             style={{ width: '100%' }}
           >
@@ -155,11 +115,11 @@ export default function App() {
               </Select.Option>
             ))}
           </Form.Select>
-          
+
           <Form.Select
             field="sourceField"
-            label="Source Field"
-            placeholder="Select source field"
+            label="源字段"
+            placeholder="请选择源字段"
             style={{ width: '100%' }}
             disabled={sourceFields.length === 0}
           >
@@ -170,12 +130,12 @@ export default function App() {
             ))}
           </Form.Select>
         </Form.Section>
-        
-        <Form.Section text="Target Configuration">
+
+        <Form.Section text="目标表格配置">
           <Form.Select
             field="targetTable"
-            label="Target Table"
-            placeholder="Select target table"
+            label="目标表格"
+            placeholder="请选择目标表格"
             onChange={handleTargetTableChange}
             style={{ width: '100%' }}
           >
@@ -185,11 +145,11 @@ export default function App() {
               </Select.Option>
             ))}
           </Form.Select>
-          
+
           <Form.Select
             field="targetField"
-            label="Target Field"
-            placeholder="Select target field"
+            label="目标字段"
+            placeholder="请选择目标字段"
             style={{ width: '100%' }}
             disabled={targetFields.length === 0}
           >
@@ -200,18 +160,18 @@ export default function App() {
             ))}
           </Form.Select>
         </Form.Section>
-        
-        <div className={styles.buttonContainer}>
-          <Button htmlType="submit" type="primary" theme="solid" loading={loading} disabled={loading}>
-            {loading ? 'Processing...' : 'Process Text'}
+
+        <div className={styles.submitContainer}>
+          <Button theme="solid" type="primary" htmlType="submit" loading={loading}>
+            开始处理
           </Button>
         </div>
       </Form>
-      
+
       {loading && (
         <div className={styles.loadingOverlay}>
           <Spin size="large" />
-          <p>Processing records, please wait...</p>
+          <p>正在处理中，请稍候...</p>
         </div>
       )}
     </div>
