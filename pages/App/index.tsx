@@ -1,10 +1,6 @@
 'use client'
 import { bitable, ITable, ITableMeta, IField, ICellValue, IOpenSegment } from "@lark-base-open/js-sdk";
 import { Button, Form, Toast, Select, Spin } from '@douyinfe/semi-ui';
-
-'use client'
-import { bitable, ITable, ITableMeta, IField, ICellValue, IOpenSegment } from "@lark-base-open/js-sdk";
-import { Button, Form, Toast, Select, Spin } from '@douyinfe/semi-ui';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { BaseFormApi } from '@douyinfe/semi-foundation/lib/es/form/interface';
 import styles from './index.module.css';
@@ -12,17 +8,6 @@ import styles from './index.module.css';
 // 获取环境变量中的令牌
 const APP_TOKEN = process.env.APP_TOKEN;
 const PERSONAL_BASE_TOKEN = process.env.PERSONAL_BASE_TOKEN;
-
-export default function App() {
-  const [tableMetaList, setTableMetaList] = useState<ITableMeta[]>([]);
-  const [sourceFields, setSourceFields] = useState<IField[]>([]);
-  const [targetFields, setTargetFields] = useState<IField[]>([]);
-  const [loading, setLoading] = useState(false);
-  const formApi = useRef<BaseFormApi>();
-
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { BaseFormApi } from '@douyinfe/semi-foundation/lib/es/form/interface';
-import styles from './index.module.css';
 
 export default function App() {
   const [tableMetaList, setTableMetaList] = useState<ITableMeta[]>([]);
