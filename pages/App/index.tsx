@@ -72,9 +72,16 @@ export default function App() {
       for (const record of recordList) {
         const cellValue = await srcTable.getCellValue(sourceField, record.id);
 
-        if (cellValue && typeof cellValue === 'string') {
-          // 按换行符分割文本
-          const lines = cellValue.split('\n').filter(line => line.trim() !== '');
+        if (cellValue !== undefined && cellValue !== null) { //check for null or undefined
+          //handle different data types.  String is assumed to be multiline
+          let lines: string[];
+          if (typeof cellValue === 'string') {
+            lines = cellValue.split('\n').filter(line => line.trim() !== '');
+          } else if (Array.isArray(cellValue)) {
+              lines = cellValue.map(String).filter(line => line.trim() !== '');
+          } else {
+            lines = [String(cellValue)]; //handle other types by converting to string
+          }
 
           for (const line of lines) {
             // 在目标表格创建新记录
