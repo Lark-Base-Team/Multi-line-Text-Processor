@@ -1,22 +1,13 @@
-import type { NextPage } from 'next'
-import Head from 'next/head'
-import dynamic from 'next/dynamic'
 
-const DynamicComponentWithNoSSR = dynamic(
-  () => import('./App'),
-  { ssr: false }
-)
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
 
-const Home: NextPage = () => {
-  return (
-    <>
-      <Head>
-        <title>Base Script</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-      <DynamicComponentWithNoSSR></DynamicComponentWithNoSSR>
-    </>
-  )
+export default function Home() {
+  const router = useRouter();
+  
+  useEffect(() => {
+    router.replace('/App');
+  }, [router]);
+  
+  return null;
 }
-
-export default Home
