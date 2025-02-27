@@ -1,5 +1,5 @@
 'use client'
-import { bitable, ITable, ITableMeta, IField, ICellValue, IOpenSegment } from "@lark-base-open/js-sdk";
+import { bitable, ITable, ITableMeta, IField, IOpenSegment } from "@lark-base-open/js-sdk";
 import { Button, Form, Toast, Select, Spin } from '@douyinfe/semi-ui';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { BaseFormApi } from '@douyinfe/semi-foundation/lib/es/form/interface';
